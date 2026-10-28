@@ -141,14 +141,26 @@ def top_vibrations(releves, n=3):
 
 
 # --- Étape 7 : le rapport JSON ------------------------------------------------------------------
-def construire_rapport(releves: list[Releve], erreurs: list[ReleveInvalide], machines: dict[str, dict]) -> dict:
-    """Le rapport sous forme d'un dictionnaire prêt pour json.dump (pas de datetime, pas d'ensemble)."""
-    raise NotImplementedError("à compléter")
+def construire_rapport(releves, erreurs, machines):
+    return {
+        "releves_valides": len(releves),
+        "lignes_rejetees": len(erreurs),
+        "moyennes": {
+            m: {"temperature": t, "vibration": v}
+            for m, (t, v) in sorted(moyennes(releves).items())
+        },
+        "alertes": [
+            {"machine": m, "heure": h.strftime("%H:%M"), "motif": motif}
+            for m, h, motif in alertes(releves, machines)
+        ],
+        "classement": [m for m, n in classement(releves, machines) if n > 0],
+        "machines_silencieuses": sorted(machines_silencieuses(releves, machines)),
+    }
 
 
-def ecrire_rapport(rapport: dict, chemin: Path) -> None:
-    """Écrit le rapport en JSON indenté, accents conservés."""
-    raise NotImplementedError("à compléter")
+def ecrire_rapport(rapport, chemin):
+    with open(chemin, "w", encoding="utf-8") as f:
+        json.dump(rapport, f, ensure_ascii=False, indent=2)
 
 
 # --- Étape 8 (à la maison) : le journal des événements (expressions régulières) ------------------
