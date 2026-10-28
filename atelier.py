@@ -15,17 +15,18 @@ Releve = tuple[str, datetime, float, float]
 
 
 # --- Étape 1 : le référentiel des machines (JSON, dictionnaires, ensembles) --------------------
-def charger_machines(chemin: Path) -> dict[str, dict]:
-    """Lit machines.json et renvoie un dictionnaire {identifiant: fiche de la machine}.
+def charger_machines(chemin):
+    with open(chemin, encoding="utf-8") as f:
+        fiches = json.load(f)
+    machines = {}
+    for fiche in fiches:
+        if fiche["id"] in machines:
+            raise FichierInvalide(f"identifiant en double : {fiche['id']}")
+        machines[fiche["id"]] = fiche
+    return machines
 
-    Lève FichierInvalide si un identifiant apparaît deux fois.
-    """
-    raise NotImplementedError("à compléter")
-
-
-def ateliers(machines: dict[str, dict]) -> set[str]:
-    """L'ensemble des ateliers où se trouvent les machines."""
-    raise NotImplementedError("à compléter")
+def ateliers(machines):
+    return {fiche["atelier"] for fiche in machines.values()}
 
 
 # --- Étape 3 : valider une ligne (exceptions, tuples) -------------------------------------------
