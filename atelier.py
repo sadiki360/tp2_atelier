@@ -164,17 +164,35 @@ def ecrire_rapport(rapport, chemin):
 
 
 # --- Étape 8 (à la maison) : le journal des événements (expressions régulières) ------------------
-MOTIF_EVENEMENT = re.compile(r"à compléter")   # étape 8
+MOTIF_EVENEMENT = re.compile(
+    r"(?P<date>\d{4}-\d{2}-\d{2}) "
+    r"(?P<heure>\d{2}:\d{2}:\d{2}) "
+    r"\[(?P<machine>M-\d{2})\] "
+    r"(?P<type>[A-Z]+) "
+    r"code=(?P<code>[A-Z]\d{2})"
+    r"(?: duree=(?P<duree>\d+))?"
+)
 
 
-def lire_evenements(chemin: Path):
-    """Générateur : un dictionnaire par ligne valide du journal, les lignes mal formées sont sautées.
+def lire_evenements(chemin):
+    with open(chemin, encoding="utf-8") as f:
+        for ligne in f:
+            m = MOTIF_EVENEMENT.fullmatch(ligne.strip())
+            if m is None:
+                continue
+            duree = m["duree"]
+            yield {
+                "machine": m["machine"],
+                "type": m["type"],
+                "code": m["code"],
+                "heure": m["heure"],
+                "duree": int(duree) if duree is not None else None,
+            }
 
-    Clés : machine, type, code, heure, duree (entier en minutes, ou None si absente).
-    """
-    raise NotImplementedError("à compléter")
 
-
-def temps_arret(evenements) -> dict[str, int]:
-    """Durée totale des ARRET par machine, en minutes."""
-    raise NotImplementedError("à compléter")
+def temps_arret(evenements):
+    totaux = {}
+    for e in evenements:
+        if e["type"] == "ARRET" and e["duree"] is not None:
+            totaux[e["machine"]] = totaux.get(e["machine"], 0) + e["duree"]
+    return totaux
