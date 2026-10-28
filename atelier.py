@@ -64,23 +64,33 @@ def parser_releve(brut, numero, machines):
 
 
 # --- Étape 4 : lire le fichier (CSV, générateur, collecte des erreurs) ---------------------------
-def lignes_csv(chemin: Path):
-    """Générateur : produit (numero, ligne_brute) pour chaque ligne de données du CSV.
-
-    Le numéro est celui de la ligne dans le fichier (l'en-tête est la ligne 1).
-    Lève FichierInvalide si une colonne attendue manque.
-    """
-    raise NotImplementedError("à compléter")
-
-
-def lire_releves(chemin: Path, machines: dict[str, dict]) -> tuple[list[Releve], list[ReleveInvalide]]:
-    """Lit tout le fichier et renvoie (releves_valides, erreurs) sans s'arrêter sur une ligne invalide."""
-    raise NotImplementedError("à compléter")
+def lignes_csv(chemin):
+    with open(chemin, encoding="utf-8-sig", newline="") as f:
+        lecteur = csv.DictReader(f, delimiter=";")
+        manquantes = [c for c in COLONNES if c not in (lecteur.fieldnames or [])]
+        if manquantes:
+            raise FichierInvalide(f"colonnes manquantes : {', '.join(manquantes)}")
+        for numero, brut in enumerate(lecteur, start=2):
+            yield numero, brut
 
 
-def ecrire_rejets(erreurs: list[ReleveInvalide], chemin: Path) -> None:
-    """Écrit les lignes rejetées dans un CSV ligne;champ;message, lisible par Excel."""
-    raise NotImplementedError("à compléter")
+def lire_releves(chemin, machines):
+    releves = []
+    erreurs = []
+    for numero, brut in lignes_csv(chemin):
+        try:
+            releves.append(parser_releve(brut, numero, machines))
+        except ReleveInvalide as err:
+            erreurs.append(err)
+    return releves, erreurs
+
+
+def ecrire_rejets(erreurs, chemin):
+    with open(chemin, "w", encoding="utf-8-sig", newline="") as f:
+        writer = csv.writer(f, delimiter=";")
+        writer.writerow(["ligne", "champ", "message"])
+        for err in erreurs:
+            writer.writerow([err.ligne, err.champ, err.message])
 
 
 # --- Étape 5 : analyser (dictionnaires, compréhensions) ------------------------------------------
